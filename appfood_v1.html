@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Soporte para modo app en iPhone -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Menú Semanal">
+  <link rel="apple-touch-icon" href="icono.png" />
+
+  <title>Menú Semanal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <div class="max-w-7xl mx-auto bg-white p-6 rounded-xl shadow-lg">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-800">Menú Semanal Saludable</h1>
+      <div class="flex gap-2">
+        <button onclick="generarSugerenciasGlobal()" class="px-4 py-2 bg-green-500 text-white rounded-lg text-sm">🎲 Generar todo</button>
+        <button onclick="limpiarTabla()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg text-sm">🧹 Limpiar</button>
+      </div>
+    </div>
+    <div class="overflow-auto">
+      <table class="w-full text-left border border-gray-200">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-3">Comida</th>
+            <th class="p-3">Lunes</th>
+            <th class="p-3">Martes</th>
+            <th class="p-3">Miércoles</th>
+            <th class="p-3">Jueves</th>
+            <th class="p-3">Viernes</th>
+            <th class="p-3">Sábado</th>
+            <th class="p-3">Domingo</th>
+          </tr>
+        </thead>
+        <tbody id="menu-body" class="bg-white"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const comidas = ["desayuno", "comida", "cena"];
+    const dias = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
+
+    const recetasSimuladas = [
+      { nombre: "Tortilla española", img: "https://www.comedera.com/wp-content/uploads/2022/06/Tortilla-espanola-shutterstock_1702366774.jpg", tipo: "desayuno" },
+      { nombre: "Gazpacho andaluz", img: "https://www.recetasderechupete.com/wp-content/uploads/2011/07/gazpacho-andaluz.jpg", tipo: "comida" },
+      { nombre: "Paella valenciana", img: "https://www.paellafrozen.com/wp-content/uploads/2020/09/receta-paella-valenciana-original.jpg", tipo: "comida" },
+      { nombre: "Ensaladilla rusa", img: "https://okdiario.com/img/2019/07/09/ensaladilla-rusa-casera.jpg", tipo: "cena" },
+      { nombre: "Pan con tomate", img: "https://cdn.recetasderechupete.com/wp-content/uploads/2014/06/pa-amb-tomaquet.jpg", tipo: "desayuno" },
+      { nombre: "Salmorejo cordobés", img: "https://sevilla.abc.es/contenidoweb/uploads/2020/04/salmorejo-cordobes.jpg", tipo: "comida" },
+      { nombre: "Pisto manchego", img: "https://okdiario.com/img/2019/06/19/receta-de-pisto-manchego-casero.jpg", tipo: "cena" }
+    ];
+
+    function crearTabla() {
+      const tbody = document.getElementById('menu-body');
+      comidas.forEach(tipo => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="font-semibold text-gray-700 p-3">${capitalize(tipo)}</td>`;
+        dias.forEach(dia => {
+          tr.innerHTML += `
+            <td class="p-3 align-top">
+              <div id="${tipo}-${dia}" class="bg-gray-100 rounded-xl p-2 space-y-2">
+                <div class="contenido"></div>
+                <div class="flex gap-2">
+                  <button onclick="generarComida('${tipo}', '${dia}')" class="text-xs px-2 py-1 bg-gray-200 rounded-full">🎲</button>
+                  <button onclick="confirmar('${tipo}', '${dia}')" class="text-xs px-2 py-1 bg-gray-200 rounded-full">✅</button>
+                </div>
+              </div>
+            </td>`;
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    function generarComida(tipo, dia) {
+      const contenedor = document.querySelector(`#${tipo}-${dia} .contenido`);
+      contenedor.innerHTML = "Cargando...";
+
+      const posibles = recetasSimuladas.filter(r => r.tipo === tipo);
+      const receta = posibles[Math.floor(Math.random() * posibles.length)];
+      const kcal = Math.floor(Math.random() * 250 + 250);
+
+      contenedor.innerHTML = `
+        <img src="${receta.img}" alt="${receta.nombre}" class="w-full h-32 object-cover rounded-lg" />
+        <div class="text-gray-800 font-semibold text-sm">${receta.nombre}</div>
+        <div class="text-orange-500 text-xs">🔥 ${kcal} kcal</div>
+        <div class="text-gray-500 text-xs">🍽️ Cocina española</div>`;
+    }
+
+    function confirmar(tipo, dia) {
+      const botones = document.querySelector(`#${tipo}-${dia} .flex`);
+      if (botones) botones.remove();
+    }
+
+    function generarSugerenciasGlobal() {
+      comidas.forEach(tipo => {
+        dias.forEach(dia => generarComida(tipo, dia));
+      });
+    }
+
+    function limpiarTabla() {
+      document.querySelectorAll('.contenido').forEach(div => div.innerHTML = '');
+      document.querySelectorAll('#menu-body td div').forEach(div => {
+        if (!div.querySelector('button')) {
+          const tipo = div.id.split("-")[0];
+          const dia = div.id.split("-")[1];
+          div.innerHTML += `<div class="flex gap-2 mt-2">
+            <button onclick="generarComida('${tipo}', '${dia}')" class="text-xs px-2 py-1 bg-gray-200 rounded-full">🎲</button>
+            <button onclick="confirmar('${tipo}', '${dia}')" class="text-xs px-2 py-1 bg-gray-200 rounded-full">✅</button>
+          </div>`;
+        }
+      });
+    }
+
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    document.addEventListener('DOMContentLoaded', crearTabla);
+  </script>
+</body>
+</html>
