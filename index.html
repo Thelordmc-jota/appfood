@@ -2,15 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Soporte para modo app en iPhone -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Menú Semanal">
-  <link rel="apple-touch-icon" href="icono.png" />
-
-  <title>Menú Semanal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Menú Semanal Saludable</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
@@ -45,16 +38,7 @@
     const comidas = ["desayuno", "comida", "cena"];
     const dias = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
 
-    const recetasSimuladas = [
-      { nombre: "Tortilla española", img: "https://www.comedera.com/wp-content/uploads/2022/06/Tortilla-espanola-shutterstock_1702366774.jpg", tipo: "desayuno" },
-      { nombre: "Gazpacho andaluz", img: "https://www.recetasderechupete.com/wp-content/uploads/2011/07/gazpacho-andaluz.jpg", tipo: "comida" },
-      { nombre: "Paella valenciana", img: "https://www.paellafrozen.com/wp-content/uploads/2020/09/receta-paella-valenciana-original.jpg", tipo: "comida" },
-      { nombre: "Ensaladilla rusa", img: "https://okdiario.com/img/2019/07/09/ensaladilla-rusa-casera.jpg", tipo: "cena" },
-      { nombre: "Pan con tomate", img: "https://cdn.recetasderechupete.com/wp-content/uploads/2014/06/pa-amb-tomaquet.jpg", tipo: "desayuno" },
-      { nombre: "Salmorejo cordobés", img: "https://sevilla.abc.es/contenidoweb/uploads/2020/04/salmorejo-cordobes.jpg", tipo: "comida" },
-      { nombre: "Pisto manchego", img: "https://okdiario.com/img/2019/06/19/receta-de-pisto-manchego-casero.jpg", tipo: "cena" }
-    ];
-
+    // Crea la tabla con las celdas y botones
     function crearTabla() {
       const tbody = document.getElementById('menu-body');
       comidas.forEach(tipo => {
@@ -76,19 +60,68 @@
       });
     }
 
-    function generarComida(tipo, dia) {
+    // Obtener desayunos filtrados por categoría Breakfast sin filtro de área
+    async function obtenerDesayunos() {
+      const res = await fetch('https://www.themealdb.com/api/json/v1/1/filter.php?c=Breakfast');
+      const data = await res.json();
+      if (!data.meals) return [];
+
+      // Traer detalle de cada desayuno (sin filtrar área)
+      const detalles = await Promise.all(data.meals.map(async meal => {
+        const detailRes = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`);
+        const detailData = await detailRes.json();
+        return detailData.meals[0];
+      }));
+
+      return detalles;
+    }
+
+    // Generar receta desayuno aleatoria (sin filtro)
+    async function fetchDesayunoRandom() {
+      const desayunos = await obtenerDesayunos();
+      if (desayunos.length === 0) return null;
+      return desayunos[Math.floor(Math.random() * desayunos.length)];
+    }
+
+    // Obtener receta random sin filtro (comida/cena)
+    async function fetchRandomMeal() {
+      const res = await fetch('https://www.themealdb.com/api/json/v1/1/random.php');
+      const data = await res.json();
+      return data.meals[0];
+    }
+
+    async function generarComida(tipo, dia) {
       const contenedor = document.querySelector(`#${tipo}-${dia} .contenido`);
       contenedor.innerHTML = "Cargando...";
 
-      const posibles = recetasSimuladas.filter(r => r.tipo === tipo);
-      const receta = posibles[Math.floor(Math.random() * posibles.length)];
-      const kcal = Math.floor(Math.random() * 250 + 250);
+      try {
+        let plato = null;
 
-      contenedor.innerHTML = `
-        <img src="${receta.img}" alt="${receta.nombre}" class="w-full h-32 object-cover rounded-lg" />
-        <div class="text-gray-800 font-semibold text-sm">${receta.nombre}</div>
-        <div class="text-orange-500 text-xs">🔥 ${kcal} kcal</div>
-        <div class="text-gray-500 text-xs">🍽️ Cocina española</div>`;
+        if (tipo === "desayuno") {
+          plato = await fetchDesayunoRandom();
+          if (!plato) {
+            contenedor.innerHTML = `<div class="text-red-500 text-sm">No se encontró desayuno disponible.</div>`;
+            return;
+          }
+        } else {
+          plato = await fetchRandomMeal();
+          if (!plato) {
+            contenedor.innerHTML = `<div class="text-red-500 text-sm">No se encontró receta tras varios intentos.</div>`;
+            return;
+          }
+        }
+
+        const kcal = Math.floor(Math.random() * 250 + 250); // kcal simuladas
+
+        contenedor.innerHTML = `
+          <img src="${plato.strMealThumb}" alt="${plato.strMeal}" class="w-full h-32 object-cover rounded-lg" />
+          <div class="text-gray-800 font-semibold text-sm">${plato.strMeal}</div>
+          <div class="text-orange-500 text-xs">🔥 ${kcal} kcal</div>
+          <div class="text-gray-500 text-xs">🍽️ ${plato.strArea} / ${plato.strCategory}</div>`;
+      } catch (error) {
+        contenedor.innerHTML = `<div class="text-red-500 text-sm">Error al cargar receta</div>`;
+        console.error(error);
+      }
     }
 
     function confirmar(tipo, dia) {
